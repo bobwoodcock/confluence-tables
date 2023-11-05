@@ -116,7 +116,6 @@ class ConfluenceUpdate:
         """This takes a value and generates the HTML for the table row that would contain that value.
         
         Args:
-            value (string): this is the value that will be in the generated HTML.
             row(list): the row values that will be inserted into the table. 
             
         Returns:
@@ -134,7 +133,7 @@ class ConfluenceUpdate:
         """This adds an value as a new row to the table in the html supplied.
         
         Args:
-            event (string): this is the event that will be added to the table in HTML.
+            row (string): this is the row that will be added to the table in HTML.
             html: this is the html for the Needs Info page.
         
         Returns:
