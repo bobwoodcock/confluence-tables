@@ -2,7 +2,7 @@
 A module that enables interactions with tables in Confluence that are not available out of the box in the REST API.
 
 # installation
-Drop the confluence-tables.py file in your PYTHONPATH directory.
+Simply import the confluence_credentials module into your script. Either place the confluence-tables.py file in your python project's working directory, or in your PYTHONPATH directory.
 
 # usage
 You can pull all the tables from a Confluence page into a Pandas DataFrame by using the ingest_html method.
