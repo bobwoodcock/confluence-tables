@@ -5,7 +5,7 @@ from requests.auth import HTTPBasicAuth
 from copy import deepcopy
 import confluence_credentials as cc # This should be a file that contains your credentials. Please see the confluence_credentials.py file for an example.
 
-class ConfluenceUpdate:
+class ConfluenceTable:
     def __init__(self,page_id,insert_list=[[]]) -> None:
         self.page_id = page_id
         self.insert_list = insert_list
@@ -221,9 +221,6 @@ class ConfluenceUpdate:
 
 
 def main():
-    # insert_list = [["Cathy Chatterly","Public Speaker"]] # This is the list of values we want to insert into the page.
-    # confluence = ConfluenceUpdate(377094384,insert_list)
-    # confluence.update() # This runs the update of the page
     pass
 
 
