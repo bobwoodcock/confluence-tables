@@ -8,7 +8,7 @@ Simply import the confluence_credentials module into your script. Either place t
 You can pull all the tables from a Confluence page into a Pandas DataFrame by using the ingest_html method.
 ```
 # Define variables
-page_id = 377094384 # This is the PageId of the confluence page that we want to interact with. You can get this id from going to 'Page Information' in
+page_id = 377094384 # This is the PageId of the confluence page that we want to interact with. You can get this id from going to 'Page Information' in Confluence. The id is a number in the URL.
 
 confluence = ConfluenceTable(page_id)
 df = confluence.ingest_html("dfs)
@@ -24,7 +24,6 @@ Things to note:
 ```
 # Define variables
 page_id = 377094384 # This is the PageId of the page that we want to update.
-Confluence. The id is a number in the URL.
 insert_list = [["Cathy Chatterly","Public Speaker"]] # This is the list of values we want to insert into the page.
 
 # Create confluence object and update the table with the values.
