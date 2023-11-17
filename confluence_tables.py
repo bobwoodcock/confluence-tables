@@ -6,31 +6,27 @@ from copy import deepcopy
 import confluence_credentials as cc # This should be a file that contains your credentials. Please see the confluence_credentials.py file for an example.
 
 class ConfluenceTable:
-    def __init__(self,page_id,insert_list=[[]]) -> None:
+    def __init__(self,page_id) -> None:
         self.page_id = page_id
-        self.insert_list = insert_list
         self.auth = HTTPBasicAuth(cc.confluence_user, cc.confluence_password) # This is the username and password for the bot account that we are using to perform Confluence operations.
-        self.html = self.ingest_html("html") # This is the HTML value of the ingested page, as a string.
-        self.dfs = self.ingest_html("dfs") # This is a list of dataframes generated from the tables within the confluence page.
-        self.df = self.dfs[0] # This is simply the first table in the list of generated dataframes.
+        self.ingest_html()
 
 
-    def update(self):
-        """Running this method performs the whole update of the Confluence page."""
+    def insert(self,insert_list=[[]]):
+        """Inserts the list of rows to the table in the Confluence page.
+        
+            Args:
+                insert_list (list): a list of rows to insert. Example: [["Cathy Chatterly","Public Speaker"],["Rod Handler","Nuclear Power Plant Worker"]]"""
         html = deepcopy(self.html)
 
-        for value in self.insert_list:
+        for value in insert_list:
             html = self.add_row_to_html_table(value,html)
-
-        status_code = self.update_page(html)
-        if status_code == 200:
-            print("Page updated succesfully.")
-        else:
-            print("Page update failed with status code: " + str(status_code))
-
+        
+        self.deliver_payload(html)
+        
 
     def url_from_page_id(self):
-        """This generates the full url of the Needs Info page that we can then use to make requests to the REST API.
+        """Gnerates the full url of the Needs Info page that we can then use to make requests to the REST API.
         
         Returns:
             url (string): This is the full URL that we can use to make requests to the REST API."""
@@ -38,18 +34,9 @@ class ConfluenceTable:
         return url
     
 
-    def ingest_html(self,output_type):
-        """Makes an API request to confluence in order to get the html body of a page and extract the tables.
-        
-        Args:
-        output_type (string): "dfs" or html". This determines whether we want to return a dataframe, or the html.
-        
-        Returns:
-            dfs (list): A list of tables converted into dataframes contained within the html.
-            OR
-            html (html): the raw html of the page that we ingested."""
+    def ingest_html(self):
+        """Makes an API request to confluence in order to get the html body of a page and extract the tables. Sets object properties: html,df,dfs."""
 
-        
         # Make the curl GET request and store the response in a variable
         url = self.url_from_page_id()
         
@@ -57,12 +44,9 @@ class ConfluenceTable:
         html = json_response["body"]["view"]["value"]
         dfs = pd.read_html(html)
 
-        if output_type == "dfs":
-            return dfs
-        elif output_type == "html":
-            return html
-        else:
-            print("Incorrect output type specified. Please use either 'dfs' or 'html'.")
+        self.html = html # This is the HTML value of the ingested page, as a string.
+        self.dfs = dfs # This is a list of dataframes generated from the tables within the confluence page.
+        self.df = dfs[0] # This is simply the first table in the list of generated dataframes.
 
 
     def get_json_response(self,url):
@@ -98,11 +82,11 @@ class ConfluenceTable:
         row = [row]
 
         incoming_df = pd.DataFrame(row,index=None,columns=self.df.columns.to_list())
-     
-        incoming_df = incoming_df.merge(self.df,how="left",indicator=True,on=incoming_df.columns.to_list()[:row_length])
 
-        incoming_df = incoming_df[incoming_df["_merge"] == "left_only"]
-        incoming_df = incoming_df.iloc[:,total_columns]
+        if self.df.shape[0] > 0:
+            incoming_df = incoming_df.merge(self.df,how="left",indicator=True,on=incoming_df.columns.to_list()[:row_length])
+            incoming_df = incoming_df[incoming_df["_merge"] == "left_only"]
+            incoming_df = incoming_df.iloc[:,total_columns]
 
         if len(incoming_df.index) == 0:
             add_row = False
@@ -113,13 +97,13 @@ class ConfluenceTable:
     
 
     def table_row_html(self,row):
-        """This takes a value and generates the HTML for the table row that would contain that value.
+        """Takes a value and generates the HTML for the table row that would contain that value.
         
         Args:
             row(list): the row values that will be inserted into the table. 
             
         Returns:
-            tr (string): this is an HTML string that can be appended to the HTML for the Needs Info page."""
+            tr (string): this is an HTML string that can be appended to the HTML."""
         
         tr = "<tr>\n"
         for value in row:
@@ -128,13 +112,34 @@ class ConfluenceTable:
 
         return tr
     
+    
+    def clear_table(self,deploy=False):
+        """Clears the table in the html. If there is more than one table, it will clear the last table only.
+        
+        Args:
+            deploy (boolean): Default is False. If true, then deploy the cleared table to the page in Confluence."""
+        
+        html = deepcopy(self.html)
+        html = str(html)
+        html = html.replace(">",">\n")
+
+        start_pos = html.rfind("</th>") + 5
+        end_pos = html.rfind("</tbody>")
+        html = html[:start_pos] + "</tr>" + html[end_pos:]
+
+        self.html = html
+        self.df = self.df.iloc[0:0]
+
+        if deploy==True:
+            self.deliver_payload(html)
+        
 
     def add_row_to_html_table(self,row,html):
-        """This adds an value as a new row to the table in the html supplied.
+        """Adds a value as a new row to the table in the html supplied.
         
         Args:
             row (string): this is the row that will be added to the table in HTML.
-            html: this is the html for the Needs Info page.
+            html: this is the raw html.
         
         Returns:
             html: the html with the added event."""
@@ -156,7 +161,7 @@ class ConfluenceTable:
     
     
     def get_version(self):
-        """This function determines the version number of the Confluence page.
+        """Determines the version number of the Confluence page.
         
         Returns:
             version (int): the current version number of the page."""
@@ -172,7 +177,7 @@ class ConfluenceTable:
     
 
     def get_title(self):
-        """This function determines the title of the Confluence page.
+        """Determines the title of the Confluence page.
         
         Returns:
             title (string): title of the page."""
@@ -186,7 +191,7 @@ class ConfluenceTable:
         return title
     
 
-    def update_page(self,html):
+    def deliver_payload(self,html):
         """This updates the Confluence page with the new html.
 
         Args:
@@ -216,6 +221,11 @@ class ConfluenceTable:
         headers = {"Content-Type": "application/json"}
 
         response = requests.put(url, data=json.dumps(payload), headers=headers,auth=self.auth)
+
+        if response.status_code == 200:
+            print("Page updated succesfully.")
+        else:
+            print("Page update failed with status code: " + str(response.status_code))
 
         return response.status_code
 
