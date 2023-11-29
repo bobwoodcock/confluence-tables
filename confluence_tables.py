@@ -10,6 +10,7 @@ class ConfluenceTable:
         self.page_id = page_id
         self.auth = HTTPBasicAuth(cc.confluence_user, cc.confluence_password) # This is the username and password for the bot account that we are using to perform Confluence operations.
         self.ingest_html()
+        self.filter_override = False
 
 
     def insert(self,insert_list=[[]]):
@@ -150,7 +151,11 @@ class ConfluenceTable:
         row_length = len(row)
         empty_columns = col_count - row_length
 
-        add_row = self.filter_incoming_row(row,empty_columns,row_length,col_count)
+        if self.filter_override == False:
+            add_row = self.filter_incoming_row(row,empty_columns,row_length,col_count)
+        else:
+            add_row = True
+            
         if add_row == True:            
             pos = html.rfind("</tbody>")
             tr = self.table_row_html(row)
