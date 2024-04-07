@@ -203,7 +203,7 @@ class ConfluenceTable:
             'type': 'page',
             'status': 'current',
             'title': title,
-            "space":{"key":"JAV"},
+            "space":{"key":cc.confluence_space},
             "body": {
                 "storage": {
                     "value": html,
