@@ -4,6 +4,7 @@ import requests
 from requests.auth import HTTPBasicAuth
 from copy import deepcopy
 import confluence_credentials as cc # This should be a file that contains your credentials. Please see the confluence_credentials.py file for an example.
+from io import StringIO
 
 class ConfluenceTable:
     def __init__(self,page_id) -> None:
@@ -18,7 +19,7 @@ class ConfluenceTable:
         
             Args:
                 insert_list (list): a list of rows to insert. Example: [["Cathy Chatterly","Public Speaker"],["Rod Handler","Nuclear Power Plant Worker"]]"""
-        html = deepcopy(self.html)
+        html = self.html.getvalue()
 
         for value in insert_list:
             html = self.add_row_to_html_table(value,html)
@@ -43,6 +44,8 @@ class ConfluenceTable:
         
         json_response = self.get_json_response(url)
         html = json_response["body"]["view"]["value"]
+        html = StringIO(str(html))
+
         dfs = pd.read_html(html)
 
         self.html = html # This is the HTML value of the ingested page, as a string.
@@ -121,7 +124,6 @@ class ConfluenceTable:
             deploy (boolean): Default is False. If true, then deploy the cleared table to the page in Confluence."""
         
         html = deepcopy(self.html)
-        html = str(html)
         html = html.replace(">",">\n")
 
         start_pos = html.rfind("</th>") + 5
@@ -236,7 +238,8 @@ class ConfluenceTable:
 
 
 def main():
-    pass
+    ct = ConfluenceTable(337557289)
+    print(str(ct.html))
 
 
 if __name__ == "__main__":
