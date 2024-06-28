@@ -7,7 +7,12 @@ import confluence_credentials as cc # This should be a file that contains your c
 from io import StringIO
 
 class ConfluenceTable:
+    """A class used for interacting with tables in Confluence."""
     def __init__(self,page_id) -> None:
+        """Initializes a ConfluenceTable object.
+        
+        Args:
+            page_id: the page_id of the Confluence page that we want to interact with. It will be a number like 337557289"""
         self.page_id = page_id
         self.auth = HTTPBasicAuth(cc.confluence_user, cc.confluence_password) # This is the username and password for the bot account that we are using to perform Confluence operations.
         self.ingest_html()
@@ -238,8 +243,7 @@ class ConfluenceTable:
 
 
 def main():
-    ct = ConfluenceTable(337557289)
-    print(str(ct.html))
+    pass
 
 
 if __name__ == "__main__":
