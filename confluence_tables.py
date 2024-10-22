@@ -8,7 +8,7 @@ import confluence_credentials as cc # This should be a file that contains your c
 
 class ConfluenceTable:
     """A class used for interacting with tables in Confluence."""
-    def __init__(self,page_id) -> None:
+    def __init__(self, page_id) -> None:
         """
         Initializes a ConfluenceTable object.
         
@@ -21,7 +21,7 @@ class ConfluenceTable:
         self.filter_override = False
         self.save_html = False
 
-    def insert(self,insert_list=[[]]):
+    def insert(self, insert_list=[[]]):
         """
         Inserts the list of rows to the table in the Confluence page.
         
@@ -40,7 +40,7 @@ class ConfluenceTable:
         Returns:
             url (string): This is the full URL that we can use to make requests to the REST API.
         """
-        url = "https://%s/rest/api/content/%s?expand=body.view" % (cc.confluence_url,str(self.page_id))
+        url = "https://%s/rest/api/content/%s?expand=body.view" % (cc.confluence_url, str(self.page_id))
         return url
 
     def ingest_html(self):
@@ -70,7 +70,7 @@ class ConfluenceTable:
         json_response = response.json()
         return json_response
     
-    def filter_incoming_row(self,row,empty_columns,row_length,total_columns):
+    def filter_incoming_row(self, row, empty_columns, row_length, total_columns):
         """
         Prevents duplicate rows from being inserted into the table.
         
@@ -89,7 +89,7 @@ class ConfluenceTable:
         row = [row]
         incoming_df = pd.DataFrame(row,index=None,columns=self.df.columns.to_list())
         if self.df.shape[0] > 0:
-            incoming_df = incoming_df.merge(self.df,how="left",indicator=True,on=incoming_df.columns.to_list()[:row_length])
+            incoming_df = incoming_df.merge(self.df,how="left", indicator=True,on=incoming_df.columns.to_list()[:row_length])
             incoming_df = incoming_df[incoming_df["_merge"] == "left_only"]
             incoming_df = incoming_df.iloc[:,total_columns]
 
@@ -134,7 +134,7 @@ class ConfluenceTable:
         if deploy==True:
             self.deliver_payload(html)
         
-    def add_row_to_html_table(self,row,html):
+    def add_row_to_html_table(self, row, html):
         """
         Adds a value as a new row to the table in the html supplied.
         
@@ -150,7 +150,7 @@ class ConfluenceTable:
         row_length = len(row)
         empty_columns = col_count - row_length
         if self.filter_override == False:
-            add_row = self.filter_incoming_row(row,empty_columns,row_length,col_count)
+            add_row = self.filter_incoming_row(row, empty_columns, row_length, col_count)
         else:
             add_row = True
         if add_row == True:            
@@ -167,7 +167,7 @@ class ConfluenceTable:
         Returns:
             version (int): the current version number of the page.
         """
-        url = "https://%s/rest/api/content/%s?expand=body.storage,version" % (cc.confluence_url,str(self.page_id))
+        url = "https://%s/rest/api/content/%s?expand=body.storage,version" % (cc.confluence_url, str(self.page_id))
         response = requests.get(url, auth=self.auth)
         json = response.json()
         version = json["version"]["number"]
@@ -181,7 +181,7 @@ class ConfluenceTable:
         Returns:
             title (string): title of the page.
         """
-        url = "https://%s/rest/api/content/%s?expand=body.storage,title" % (cc.confluence_url,str(self.page_id))
+        url = "https://%s/rest/api/content/%s?expand=body.storage,title" % (cc.confluence_url, str(self.page_id))
         response = requests.get(url, auth=self.auth)
         json = response.json()
         title = json["title"]
@@ -197,14 +197,14 @@ class ConfluenceTable:
         Returns:
             response.status_code: This status code lets us know whether or not the PUT request we made to the Confluence REST API was successful.
         """
-        url = "https://%s/rest/api/content/%s" % (cc.confluence_url,str(self.page_id))
+        url = "https://%s/rest/api/content/%s" % (cc.confluence_url, str(self.page_id))
         title = self.get_title()
         version_number = self.get_version() + 1
         payload = {
-            'id': self.page_id,
-            'type': 'page',
-            'status': 'current',
-            'title': title,
+            "id": self.page_id,
+            "type": "page",
+            "status": "current",
+            "title": title,
             "space":{"key":cc.confluence_space},
             "body": {
                 "storage": {
