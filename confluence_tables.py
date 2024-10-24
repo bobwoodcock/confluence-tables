@@ -4,16 +4,18 @@ import requests
 from requests.auth import HTTPBasicAuth
 from copy import deepcopy
 from io import StringIO
+from bs4 import BeautifulSoup
 import confluence_credentials as cc # This should be a file that contains your credentials. Please see the confluence_credentials.py file for an example.
 
 class ConfluenceTable:
-    """A class used for interacting with tables in Confluence."""
+    """Interacts with tables in Confluence."""
     def __init__(self, page_id) -> None:
         """
         Initializes a ConfluenceTable object.
         
         Args:
-            page_id: the page_id of the Confluence page that we want to interact with. It will be a number like 337557289
+            page_id (int): the page_id of the Confluence page that we want to interact with.
+            It will be an integer like 123456789.
         """
         self.page_id = page_id
         self.auth = HTTPBasicAuth(cc.confluence_user, cc.confluence_password) # This is the username and password for the bot account that we are using to perform Confluence operations.
@@ -25,8 +27,9 @@ class ConfluenceTable:
         """
         Inserts the list of rows to the table in the Confluence page.
         
-            Args:
-                insert_list (list): a list of rows to insert. Example: [["Cathy Chatterly","Public Speaker"],["Rod Handler","Nuclear Power Plant Worker"]]
+        Args:
+            insert_list (list): a list of rows to insert.
+            Example: [["Cathy Chatterly", "Public Speaker"], ["Rod Handler", "Nuclear Power Plant Worker"]]
         """
         html = self.html.getvalue()
         for value in insert_list:
@@ -35,7 +38,7 @@ class ConfluenceTable:
 
     def url_from_page_id(self):
         """
-        Gnerates the full url of the Needs Info page that we can then use to make requests to the REST API.
+        Generates the full url of the Needs Info page that we can then use to make requests to the REST API.
         
         Returns:
             url (string): This is the full URL that we can use to make requests to the REST API.
@@ -44,7 +47,10 @@ class ConfluenceTable:
         return url
 
     def ingest_html(self):
-        """Makes an API request to confluence in order to get the html body of a page and extract the tables. Sets object properties: html,df,dfs."""
+        """
+        Makes an API request to confluence in order to get the html body of a page and extract the tables.
+        Sets object properties: html, df, dfs.
+        """
         # Make the curl GET request and store the response in a variable
         url = self.url_from_page_id()
         json_response = self.get_json_response(url)
@@ -55,9 +61,9 @@ class ConfluenceTable:
         self.dfs = dfs # This is a list of dataframes generated from the tables within the confluence page.
         self.df = dfs[0] # This is simply the first table in the list of generated dataframes.
 
-    def get_json_response(self,url):
+    def get_json_response(self, url):
         """
-        This function returns the json response from the Needs Info page.
+        Gets the JSON response from the supplied URL page.
 
         Args:
             url (string): the URL of the Confluence page that we want to retreive a JSON response from.
@@ -99,12 +105,12 @@ class ConfluenceTable:
             add_row = True
         return add_row
     
-    def table_row_html(self,row):
+    def table_row_html(self, row):
         """
         Takes a value and generates the HTML for the table row that would contain that value.
         
         Args:
-            row(list): the row values that will be inserted into the table. 
+            row (list): the row values that will be inserted into the table. 
             
         Returns:
             tr (string): this is an HTML string that can be appended to the HTML.
@@ -115,7 +121,7 @@ class ConfluenceTable:
         tr += "</tr>"
         return tr
     
-    def clear_table(self,deploy=False):
+    def clear_table(self, deploy=False):
         """
         Clears the table in the html. If there is more than one table, it will clear the last table only.
         
@@ -140,10 +146,10 @@ class ConfluenceTable:
         
         Args:
             row (string): this is the row that will be added to the table in HTML.
-            html: this is the raw html.
+            html (html): this is the raw html.
         
         Returns:
-            html: the html with the added event.
+            html (string): the html with the added event.
         """
         html = str(html)
         col_count = len(self.df.columns)
@@ -192,10 +198,10 @@ class ConfluenceTable:
         This updates the Confluence page with the new html.
 
         Args:
-            html: This is the updated html that we want to deploy to Confluence.
+            html (string): This is the updated html that we want to deploy to Confluence.
         
         Returns:
-            response.status_code: This status code lets us know whether or not the PUT request we made to the Confluence REST API was successful.
+            response.status_code (int): This status code lets us know whether or not the PUT request we made to the Confluence REST API was successful.
         """
         url = "https://%s/rest/api/content/%s" % (cc.confluence_url, str(self.page_id))
         title = self.get_title()
@@ -224,6 +230,47 @@ class ConfluenceTable:
         else:
             print("Page update failed with status code: " + str(response.status_code))
         return response.status_code
+
+class Updater(ConfluenceTable):
+    """Used to update tables on Confluence pages."""
+    def __init__(self, page_id) -> None:
+        """
+        Initializes an Updater object.
+
+        Args:
+            page_id (int): the page_id of the confluence page.
+            It will be a number like 123456789.
+        """
+        super().__init__(page_id)
+    
+    def dfs_to_confluence(self, dfs):
+        """Replaces tables on the Confluence page with the supplied list of dataframes.
+        
+        Args:
+            dfs (list of pandas.DataFrame): a list of dataframes that we will use to update the tables in the HTML.
+        """
+        original_html = self.html
+
+        # Convert the dataframes to HTML tables
+        dfs_html_tables = [df.to_html(index=False) for df in dfs]
+
+        # Parse the original HTML content
+        soup = BeautifulSoup(original_html, 'html.parser')
+        
+        # Find all the tables in the original HTML file
+        original_tables = soup.find_all('table')
+        
+        # Ensure there are enough tables to replace
+        if len(original_tables) != len(dfs_html_tables):
+            raise ValueError(f"Number of tables in HTML ({len(original_tables)}) does not match number of dataframes ({len(dfs_html_tables)}).")
+        
+        # Replace the existing tables with the new ones from dfs_html_tables
+        for i, table in enumerate(original_tables):
+            new_table = BeautifulSoup(dfs_html_tables[i], 'html.parser').find('table')
+            table.replace_with(new_table)
+
+        # Deploy the updated HTML to Confluence.
+        self.deliver_payload(str(soup))
 
 
 def main():
