@@ -231,6 +231,12 @@ class ConfluenceTable:
             print("Page update failed with status code: " + str(response.status_code))
         return response.status_code
 
+class Ingester(ConfluenceTable):
+    """Used to ingest tables on Confluece pages."""
+    def __init__(self, page_id) -> None:
+        """Initializes an Ingester object."""
+        super().__init__(page_id)
+
 class Updater(ConfluenceTable):
     """Used to update tables on Confluence pages."""
     def __init__(self, page_id) -> None:
