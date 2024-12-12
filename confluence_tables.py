@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 import confluence_credentials as cc # This should be a file that contains your credentials. Please see the confluence_credentials.py file for an example.
 
 class ConfluenceTable:
-    """Interacts with tables in Confluence."""
+    """Interacts with tables in Confluence. This is deprecated, and it is recommended that you use the Ingester and Updater classes."""
     def __init__(self, page_id) -> None:
         """
         Initializes a ConfluenceTable object.
